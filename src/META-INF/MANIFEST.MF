@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Build-Jdk: 25.0.1
+Main-Class: com.xactsolutions.email.XactEmail
+

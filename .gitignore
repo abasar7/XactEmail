@@ -34,3 +34,4 @@ bin/
 ## Application Data ##
 /data/
 /resouces/application.properties
+/myApp.log**
