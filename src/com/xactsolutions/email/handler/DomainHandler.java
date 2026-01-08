@@ -19,7 +19,7 @@ public class DomainHandler extends BaseRequestHandler {
     protected @NonNull Response getOne() {
         String domainKey = maddy.resolveDomainKey(key);
         String responseStr = "{\"dnsRecordType\": \"TXT\", \"hostname\": \"default._domainkey.%s\", \"value\": \"%s\"}".formatted(key, domainKey);
-        return new Response(200, responseStr);
+        return new JsonResponse(200, responseStr);
     }
 
     @Override
@@ -28,13 +28,13 @@ public class DomainHandler extends BaseRequestHandler {
         String domainKey = maddy.addDomain(name);
 
         String responseStr = "{\"dnsRecordType\": \"TXT\", \"hostname\": \"default._domainkey.%s\", \"value\": \"%s\"}".formatted(name, domainKey);
-        return new Response(201, responseStr);
+        return new JsonResponse(201, responseStr);
     }
 
     @Override
     protected @NonNull Response delete() {
         maddy.removeDomain(key);
-        return new Response(201, null);
+        return new JsonResponse(201, null);
     }
 
 }

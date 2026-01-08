@@ -24,12 +24,12 @@ public class EmailHandler extends BaseRequestHandler {
         String subject = Utils.getJsonFieldValue(payloadStr, "subject");
         String content = Utils.getJsonFieldValue(payloadStr, "content");
         if (isEmpty(from) || isEmpty(to) || isEmpty(subject) || isEmpty(content)) {
-            return new Response(400, "{\"message\": \"Payload has empty value in from/to/subject/content\"}");
+            return new JsonResponse(400, "{\"message\": \"Payload has empty value in from/to/subject/content\"}");
         }
 
         maddy.sendEmail(from, to, subject, content);
         log.info("Email send successfully to {}", to);
-        return new Response(201, null);
+        return new JsonResponse(201, null);
     }
 
 }

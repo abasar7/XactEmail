@@ -46,11 +46,11 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
     protected @NonNull Response post() {
         if (lastScannedTime.plusSeconds(10).isAfter(LocalDateTime.now())) {
             log.info("Skip the incoming message scanning to ensure min delay (10s)");
-            return new Response(200, null);
+            return new JsonResponse(200, null);
         }
         if (scanning.get()) {
             log.info("Skipping... Another thread is scanning incoming message.");
-            return new Response(200, null);
+            return new JsonResponse(200, null);
         }
 
         Thread.ofVirtual()
@@ -99,7 +99,7 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
                 }
             });
 
-        return new Response(200, null);
+        return new JsonResponse(200, null);
     }
 
     private String buildCRMPayload(EmailParser parser, boolean report) {

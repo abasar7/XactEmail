@@ -123,10 +123,10 @@ public class Maddy {
 
     private Properties getSessionProperties() {
         Properties prop = new Properties();
-        prop.put("mail.smtp.auth", true);
-        prop.put("mail.smtp.port", "465");
-        prop.put("mail.smtp.ssl.enable", "true");
         prop.put("mail.smtp.host", "mx1.carddeals.info");
+        prop.put("mail.smtp.port", "587");
+        prop.put("mail.smtp.starttls.enable", true);
+        prop.put("mail.smtp.auth", true);
         return prop;
     }
 
