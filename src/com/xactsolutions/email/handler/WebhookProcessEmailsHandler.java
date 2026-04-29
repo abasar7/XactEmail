@@ -1,5 +1,6 @@
 package com.xactsolutions.email.handler;
 
+import com.xactsolutions.email.exception.HtmlContentNotFoundException;
 import com.xactsolutions.email.maddy.Maddy;
 import com.xactsolutions.email.model.MessageMeta;
 import com.xactsolutions.email.parser.EmailParser;
@@ -80,7 +81,7 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
                                 regularIds.add(id);
                             }
                         } catch (Exception e) {
-                            log.error("Failed to forward message {}-{} to {}", id, bodyKey, crmInboundUri, e);
+                            log.error("Failed to forward message {}_{} - {} to {}", meta.getUserId(), id, bodyKey, crmInboundUri, e);
                         }
                     }
 
@@ -88,7 +89,7 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
                     allForwardedIds.addAll(reportIds);
 
                     log.debug("Total {}/{} messages has been forwarded (will be mark as soon). " +
-                            "Where {} was regular and {} was report.",
+                            "Where {} was regular inbound email(s) and {} was report.",
                         allForwardedIds.size(), messages.size(), reportIds.size(), reportIds.size());
                     maddy.markMessagesAsSeen(allForwardedIds);
                 } catch (Exception e) {
@@ -99,7 +100,7 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
                 }
             });
 
-        return new JsonResponse(200, null);
+        return new JsonResponse(202, null);
     }
 
     private String buildCRMPayload(EmailParser parser, boolean report) {
@@ -118,6 +119,13 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
         }
         String recipients = sb.delete(0, 4).toString();
 
+        String txtContent = null, htmlContent = null;
+        if (!report) {
+            txtContent = parser.getTextContent();
+            try { htmlContent = parser.getHtmlContent(); }
+            catch (HtmlContentNotFoundException e) {/**/}
+        }
+
         return """
             "report": "%b",
             "from_email": "%s",
@@ -127,9 +135,7 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
             "date_received": "%s"
             "body_text": "%s",
             "body_html": "%s",
-            """.formatted(report, fromEmail, fromName, recipients, parser.getSubject(), parser.getSentDate(),
-            !report ? parser.getTextContent() : null,
-            !report ? parser.getHtmlContent() : null);
+            """.formatted(report, fromEmail, fromName, recipients, parser.getSubject(), parser.getSentDate(), txtContent, htmlContent);
     }
 
 

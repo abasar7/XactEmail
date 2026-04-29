@@ -3,6 +3,7 @@ package com.xactsolutions.email.maddy;
 import com.xactsolutions.email.model.MessageMeta;
 import jakarta.mail.*;
 import jakarta.mail.internet.MimeMessage;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.SQLException;
@@ -19,12 +20,15 @@ import static com.xactsolutions.email.util.Utils.isEmpty;
 public class Maddy {
 
     private static final Pattern DOMAIN_REGEX = Pattern.compile("^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\\.)+[a-zA-Z]{2,}$");
+    private static final String BODY_TAG = "</body>";
 
     private final String username;
     private final String userDomain;
     private final String password;
+    private final String host;
 
-    public Maddy(String username, String password, String imapDbUrl) {
+    public Maddy(String host, String username, String password, String imapDbUrl) {
+        this.host = host;
         this.username = username;
         this.userDomain = username.split("@")[1];
         this.password = password;
@@ -53,7 +57,7 @@ public class Maddy {
         return MaddyDomainHelper.resolveDomainKey(domain);
     }
 
-    public void sendEmail(String from, String to, String subject, String htmlContent) {
+    public void sendEmail(@NonNull String from, @NonNull String to, @NonNull String subject, @NonNull String htmlContent, String unsubscribeUrl) {
         Session session = Session.getDefaultInstance(getSessionProperties(), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
@@ -65,11 +69,22 @@ public class Maddy {
             MimeMessage message = new MimeMessage(session);
             message.setFrom(from);
             message.setRecipients(Message.RecipientType.TO, to);
-            message.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
-            message.setHeader("List-Unsubscribe", "<mailto:unsubscribe@"+ userDomain +"?subject=unsubscribe>");
+            if (!isEmpty(unsubscribeUrl)) {
+                String unsubscribeText = "<div style=\"text-align:center; padding: 4px;\">If you do not wish to receive any further communications, please <a href=\""+unsubscribeUrl+"\">unsubscribe here</a>.</div>\n";
+                message.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+                message.setHeader("List-Unsubscribe", "<"+unsubscribeUrl+">,<mailto:unsubscribe@"+ userDomain +"?subject=unsubscribe>");
+
+                StringBuilder sb = new StringBuilder(htmlContent);
+                int bodyTagIndex = sb.indexOf(BODY_TAG);
+                if (bodyTagIndex == -1) bodyTagIndex = sb.length();
+                htmlContent = sb.insert(bodyTagIndex, unsubscribeText).toString();
+            } else {
+                message.setHeader("List-Unsubscribe", "<mailto:unsubscribe@"+ userDomain +"?subject=unsubscribe>");
+            }
             message.setSubject(subject);
             message.setText(htmlContent, "utf-8", "html");
             Transport.send(message);
+            log.debug("Email send successfully to {} from {}", to, from);
         } catch (MessagingException e) {
             throw new RuntimeException(e);
         }
@@ -123,7 +138,7 @@ public class Maddy {
 
     private Properties getSessionProperties() {
         Properties prop = new Properties();
-        prop.put("mail.smtp.host", "mx1.carddeals.info");
+        prop.put("mail.smtp.host", host);
         prop.put("mail.smtp.port", "587");
         prop.put("mail.smtp.starttls.enable", true);
         prop.put("mail.smtp.auth", true);

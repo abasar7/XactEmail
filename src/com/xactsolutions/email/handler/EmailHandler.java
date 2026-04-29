@@ -23,13 +23,25 @@ public class EmailHandler extends BaseRequestHandler {
         String to = Utils.getJsonFieldValue(payloadStr, "to");
         String subject = Utils.getJsonFieldValue(payloadStr, "subject");
         String content = Utils.getJsonFieldValue(payloadStr, "content");
+        String unsubscribeUrl = Utils.getJsonFieldValue(payloadStr, "unsubscribeUrl");
         if (isEmpty(from) || isEmpty(to) || isEmpty(subject) || isEmpty(content)) {
             return new JsonResponse(400, "{\"message\": \"Payload has empty value in from/to/subject/content\"}");
         }
+        if (!isEmpty(unsubscribeUrl) && !unsubscribeUrl.startsWith("https://")) {
+            return new JsonResponse(400, "{\"message\": \"Invalid unsubscribeUrl.\"}");
+        }
 
-        maddy.sendEmail(from, to, subject, content);
-        log.info("Email send successfully to {}", to);
-        return new JsonResponse(201, null);
+        Thread.ofVirtual()
+            .name("email-sender-", 0)
+            .start(() -> {
+                try {
+                    maddy.sendEmail(from, to, subject, content, unsubscribeUrl);
+                    log.debug("Email successfully sent to {} from {}", from, to);
+                } catch (Exception e) {
+                    log.error("Error in sending email via maddy", e);
+                }
+            });
+        return new JsonResponse(202, null);
     }
 
 }

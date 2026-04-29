@@ -1,12 +1,7 @@
 package com.xactsolutions.email.maddy;
 
-import lombok.extern.slf4j.Slf4j;
+import com.xactsolutions.email.util.SystemUtils;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-
-@Slf4j
 public class MaddyServiceHelper {
 
     private static final String STATUS_OUTPUT_PREFIX = "Active: ";
@@ -18,35 +13,25 @@ public class MaddyServiceHelper {
      * @return true if maddy service is active. false otherwise
      * */
     public static boolean getServiceStatus() {
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder(STATUS_COMMAND);
-            processBuilder.redirectErrorStream(true);   // error data will be merged to regular input stream (stdout)
-            Process process = processBuilder.start();
+        String[] result = SystemUtils.executeCommand(STATUS_COMMAND);
+        if (!result[0].equals("0"))
+            throw new RuntimeException("Unknown exit code when executing Maddy status command: " + result[0]);
 
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null)
-                    if (line.trim().startsWith(STATUS_OUTPUT_PREFIX))
-                        return !line.trim().substring(STATUS_OUTPUT_PREFIX.length()).startsWith("inactive");
-            }
-            int exitCode = process.waitFor();
-            log.debug("Status exit code {}", exitCode);
-            if (exitCode != 0) throw new RuntimeException("Unexpected maddy status exit code: " + exitCode);
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException("Failed to restart maddy server", e);
-        }
-        return false;
+        return result[1].lines()
+            .anyMatch(line -> {   // find out inactive status
+                line = line.trim();
+                if (line.startsWith(STATUS_OUTPUT_PREFIX)) {
+                    line = line.substring(STATUS_OUTPUT_PREFIX.length()).trim();
+                    return line.toLowerCase().startsWith("inactive");
+                }
+                return true;    // assume inactive by default
+            });
     }
 
     static void restartService() {
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder(RESTART_COMMAND);
-            Process process = processBuilder.start();
-            int exitCode = process.waitFor();
-            if (exitCode != 0) throw new RuntimeException("Unexpected maddy restart exit code: " + exitCode);
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException("Failed to restart maddy server", e);
-        }
+        String[] result = SystemUtils.executeCommand(RESTART_COMMAND);
+        if (!result[0].equals("0"))
+            throw new RuntimeException("Unknown exit code when executing Maddy restart command: " + result[0]);
     }
 
 }

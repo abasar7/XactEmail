@@ -22,8 +22,10 @@ public class XactEmail {
 
 
     static void main() throws IOException {
+        log.info("Starting Xact Email");
         Properties properties = loadProperties();
-        Maddy maddy = new Maddy(properties.getProperty("maddy.username"),
+        Maddy maddy = new Maddy(properties.getProperty("maddy.host"),
+            properties.getProperty("maddy.username"),
             properties.getProperty("maddy.password"),
             properties.getProperty("maddy.imap.dburl"));
 
@@ -32,7 +34,7 @@ public class XactEmail {
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
 
         server.createContext(HEALTH_URL, new HealthHandler(HEALTH_URL));
-        server.createContext(DOMAINS_URL, new DomainHandler(DOMAINS_URL, maddy));
+        server.createContext(DOMAINS_URL, new DomainHandler(DOMAINS_URL, properties.getProperty("dns.mx.ip"), maddy));
         server.createContext(EMAILS_URL, new EmailHandler(EMAILS_URL, maddy));
 
         WebhookProcessEmailsHandler webhookProcessEmailsHandler = new WebhookProcessEmailsHandler(WEBHOOKS_TRIGGER_IMAP_URL, maddy,
@@ -42,6 +44,7 @@ public class XactEmail {
         server.createContext(WEBHOOKS_TRIGGER_IMAP_URL, webhookProcessEmailsHandler);
 
         server.start();
+        log.info("Xact Email started");
 
         Executors.newSingleThreadScheduledExecutor()
             .scheduleAtFixedRate(webhookProcessEmailsHandler::triggerProcessing, 1, 5, TimeUnit.MINUTES);

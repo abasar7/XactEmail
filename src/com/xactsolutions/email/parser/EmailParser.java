@@ -1,5 +1,6 @@
 package com.xactsolutions.email.parser;
 
+import com.xactsolutions.email.exception.HtmlContentNotFoundException;
 import jakarta.mail.Address;
 import jakarta.mail.BodyPart;
 import jakarta.mail.MessagingException;
@@ -26,6 +27,7 @@ public class EmailParser {
     private static final String MIME_TYPE_HTML = "text/html";
     private static final String MIME_TYPE_MIXED = "multipart/mixed";
     private static final String MIME_TYPE_REPORT = "multipart/report";
+    private static final String MIME_TYPE_RELATED = "multipart/related";
     private static final String MIME_TYPE_ALTERNATIVE = "multipart/alternative";
     private static final String MIME_RFC_822_HEADER = "message/rfc822-headers";
     private static final String REPORT_SUB_TYPE = "report-type=";
@@ -35,10 +37,10 @@ public class EmailParser {
     public EmailParser(String rawFilename) {
         try {
             FileInputStream fileInputStream = new FileInputStream(rawFilename);
-            this.message = new MimeMessage(Session.getDefaultInstance(new Properties()), fileInputStream);
+            this.message = new MimeMessage(Session.getInstance(new Properties()), fileInputStream);
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Raw file not found. " + rawFilename, e);
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to parse", e);
         }
     }
@@ -147,9 +149,14 @@ public class EmailParser {
                 if (bodyPart instanceof MimeMultipart alternativeContent) {
                     bodyPart = getBodyPart(alternativeContent, MIME_TYPE_HTML);
                     if (bodyPart instanceof String htmlContent) return htmlContent;
+                    bodyPart = getBodyPart(alternativeContent, MIME_TYPE_RELATED);
+                    if (bodyPart instanceof MimeMultipart relatedContent) {
+                        bodyPart = getBodyPart(relatedContent, MIME_TYPE_HTML);
+                        if (bodyPart instanceof String htmlContent) return htmlContent;
+                    }
                 }
             }
-            throw new RuntimeException("There is no html content found in this email!!");
+            throw new HtmlContentNotFoundException();
         } catch (MessagingException | IOException e) {
             throw new RuntimeException(e);
         }
