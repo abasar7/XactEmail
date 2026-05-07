@@ -3,6 +3,7 @@ package com.xactsolutions.email.maddy;
 import com.xactsolutions.email.model.MessageMeta;
 import jakarta.mail.*;
 import jakarta.mail.internet.MimeMessage;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,12 +23,16 @@ public class Maddy {
     private static final Pattern DOMAIN_REGEX = Pattern.compile("^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\\.)+[a-zA-Z]{2,}$");
     private static final String BODY_TAG = "</body>";
 
+    @Getter
+    private final String host;
+    @Getter
+    private final String ip;
     private final String username;
     private final String userDomain;
     private final String password;
-    private final String host;
 
-    public Maddy(String host, String username, String password, String imapDbUrl) {
+    public Maddy(String ip, String host, String username, String password, String imapDbUrl) {
+        this.ip = ip;
         this.host = host;
         this.username = username;
         this.userDomain = username.split("@")[1];

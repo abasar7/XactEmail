@@ -2,10 +2,13 @@ package com.xactsolutions.email.handler;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import com.xactsolutions.email.exception.AuthenticationException;
+import com.xactsolutions.email.filter.AuthFilter;
 import com.xactsolutions.email.util.Utils;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -17,6 +20,7 @@ import java.util.Map;
 public class BaseRequestHandler implements HttpHandler {
 
     private final String endpoint;
+    private final AuthFilter authFilter;
 
     protected String path;
     protected String key;
@@ -27,7 +31,7 @@ public class BaseRequestHandler implements HttpHandler {
     protected static abstract class Response {
         int status;
     }
-    @NoArgsConstructor
+    @NoArgsConstructor @ToString
     protected static class JsonResponse extends Response {
         String jsonStr;
         public JsonResponse(int status, String jsonStr) {
@@ -60,8 +64,9 @@ public class BaseRequestHandler implements HttpHandler {
     }
 
 
-    public BaseRequestHandler(String endpoint) {
+    public BaseRequestHandler(String endpoint, AuthFilter authFilter) {
         this.endpoint = endpoint;
+        this.authFilter = authFilter;
     }
 
 
@@ -73,12 +78,17 @@ public class BaseRequestHandler implements HttpHandler {
         key = getPathVariable(path, endpoint + "/");
         queryMap = getQueryMap(uri.getQuery());
         payloadStr = new String(exchange.getRequestBody().readAllBytes());
-        log.debug("Received new {} request at {} with payload... \n{}", method, path, payloadStr);
+        log.debug("Received new {} request at {} with payload:\n{}", method, path, payloadStr);
 
         try {
+            if (authFilter != null) authFilter.applyFilter(exchange);
+
+            boolean isLeaf = path.equals(endpoint) || path.equals(endpoint + "/");
+            log.trace("Invoking appropriate {} method for {}-url", method, isLeaf ? "leaf" : "non-leaf");
+
             Response response = switch (method) {
                 case "GET" -> {
-                    if (path.equals(endpoint) || path.equals(endpoint + "/"))
+                    if (isLeaf)
                         yield list();
                     else
                         yield getOne();
@@ -87,7 +97,11 @@ public class BaseRequestHandler implements HttpHandler {
                 case "DELETE" -> delete();
                 default -> throw new IllegalStateException("Unsupported HTTP method: " + method);
             };
+            log.trace("Returning HTTP {} response:\n{}", response.status, response);
             setResponse(exchange, response);
+        } catch (AuthenticationException e) {
+            log.debug("Unauthenticated");
+            setResponse(exchange, new JsonResponse(401, null));
         } catch (Exception e) {
             log.error("Exception in {} endpoint", endpoint, e);
             setResponse(exchange, new JsonResponse(500, null));
@@ -111,7 +125,7 @@ public class BaseRequestHandler implements HttpHandler {
     }
 
 
-    private static String getPathVariable(String urlPath, String endpointInitial) {
+    private String getPathVariable(String urlPath, String endpointInitial) {
         if (!urlPath.startsWith(endpointInitial)) return null;
 
         String pathVariable = urlPath.substring(endpointInitial.length());
@@ -120,7 +134,7 @@ public class BaseRequestHandler implements HttpHandler {
         return pathVariable;
     }
 
-    public static @NonNull Map<String, String> getQueryMap(String query) {
+    private @NonNull Map<String, String> getQueryMap(String query) {
         Map<String, String> map = new HashMap<>();
         if (query == null) return map;
 
@@ -133,11 +147,15 @@ public class BaseRequestHandler implements HttpHandler {
         return map;
     }
 
-    private static void setResponse(HttpExchange exchange, Response response) throws IOException {
+    private void setResponse(HttpExchange exchange, Response response) throws IOException {
         int status = response.status;
-        boolean isJsonResponse = response instanceof JsonResponse;
         String jsonStr = null;
-        if (isJsonResponse) jsonStr = ((JsonResponse)response).jsonStr;
+        boolean isJsonResponse = false;
+        if (response instanceof JsonResponse jsonResponse) {
+            isJsonResponse = true;
+            if (jsonResponse.jsonStr != null)
+                jsonStr = jsonResponse.jsonStr.trim();
+        }
 
         if (status < 200 || status > 599) throw new RuntimeException("Invalid response status " + status);
         if (status == 204 || (isJsonResponse && Utils.isEmpty(jsonStr))) {

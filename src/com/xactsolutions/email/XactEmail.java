@@ -2,12 +2,15 @@ package com.xactsolutions.email;
 
 import com.sun.net.httpserver.HttpServer;
 import com.xactsolutions.email.handler.*;
+import com.xactsolutions.email.filter.AuthFilter;
+import com.xactsolutions.email.filter.StaticTokenFilter;
 import com.xactsolutions.email.maddy.Maddy;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -24,20 +27,25 @@ public class XactEmail {
     static void main() throws IOException {
         log.info("Starting Xact Email");
         Properties properties = loadProperties();
-        Maddy maddy = new Maddy(properties.getProperty("maddy.host"),
+        Maddy maddy = new Maddy(properties.getProperty("maddy.ip"),
+            properties.getProperty("maddy.host"),
             properties.getProperty("maddy.username"),
             properties.getProperty("maddy.password"),
             properties.getProperty("maddy.imap.dburl"));
+
+        AuthFilter authFilter = new StaticTokenFilter(List.of(properties.getProperty("crm.token")));
 
         int port = Integer.parseInt(properties.getProperty("server.port"));
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
 
-        server.createContext(HEALTH_URL, new HealthHandler(HEALTH_URL));
-        server.createContext(DOMAINS_URL, new DomainHandler(DOMAINS_URL, properties.getProperty("dns.mx.ip"), maddy));
-        server.createContext(EMAILS_URL, new EmailHandler(EMAILS_URL, maddy));
+        server.createContext(HEALTH_URL, new HealthHandler(HEALTH_URL, null));
+        server.createContext(DOMAINS_URL, new DomainHandler(DOMAINS_URL, authFilter, maddy));
+        server.createContext(EMAILS_URL, new EmailHandler(EMAILS_URL, authFilter, maddy));
 
-        WebhookProcessEmailsHandler webhookProcessEmailsHandler = new WebhookProcessEmailsHandler(WEBHOOKS_TRIGGER_IMAP_URL, maddy,
+        WebhookProcessEmailsHandler webhookProcessEmailsHandler = new WebhookProcessEmailsHandler(WEBHOOKS_TRIGGER_IMAP_URL,
+            null,
+            maddy,
             properties.getProperty("maddy.imap.message.dir"),
             properties.getProperty("crm.inbound.url"),
             properties.getProperty("crm.report.url"));

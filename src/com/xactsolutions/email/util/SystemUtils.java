@@ -44,7 +44,7 @@ public class SystemUtils {
                     output.append(line).append("\n");
             }
             int exitCode = process.waitFor();
-            log.debug("Command executed and finishes with exit code {}", exitCode);
+            log.debug("Command ({}) executed and finishes with exit code {}", command, exitCode);
             return new String[] {String.valueOf(exitCode), output.toString()};
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("Error when executing a command", e);
@@ -59,7 +59,7 @@ public class SystemUtils {
      * ["v=spf1 mx ~all", "google-site-verification=6OB-29oecz30D"] - for TXT record - quotation will be removed
      **/
     public static List<String> resolveDnsRecord(String domain, final String type) {
-        if (!DNS_RECORD_PREFIX.containsKey(domain))
+        if (!DNS_RECORD_PREFIX.containsKey(type))
             throw new IllegalArgumentException("Provided DNS Record type is not supported yet: " + type);
 
         String[] result = executeCommand(new String[]{HOST_COMMAND_LOCATION, "-t", type, domain});
@@ -71,7 +71,7 @@ public class SystemUtils {
             .map(l -> {
                 l = l.substring(prefix.length());
                 if (type.equalsIgnoreCase("MX"))
-                    return l.replaceAll("^\\d+\\s+", "");   // remove priority int
+                    return l.replaceAll("^\\d+\\s+", "").replaceAll("\\.$", "");   // remove priority int, space & ending dot
                 else if (type.equalsIgnoreCase("TXT"))
                     return l.substring(1, l.length() - 1);  // remove quotations
                 return l;

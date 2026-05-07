@@ -1,6 +1,7 @@
 package com.xactsolutions.email.handler;
 
 import com.xactsolutions.email.exception.HtmlContentNotFoundException;
+import com.xactsolutions.email.filter.AuthFilter;
 import com.xactsolutions.email.maddy.Maddy;
 import com.xactsolutions.email.model.MessageMeta;
 import com.xactsolutions.email.parser.EmailParser;
@@ -30,8 +31,8 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
     private static LocalDateTime lastScannedTime = LocalDateTime.now();
     private static final AtomicBoolean scanning = new AtomicBoolean(false);
 
-    public WebhookProcessEmailsHandler(String endpoint, Maddy maddy, String messageDir, String crmInboundUrl, String crmReportUrl) {
-        super(endpoint);
+    public WebhookProcessEmailsHandler(String endpoint, AuthFilter authFilter, Maddy maddy, String messageDir, String crmInboundUrl, String crmReportUrl) {
+        super(endpoint, authFilter);
         this.maddy = maddy;
         this.messageDir = messageDir;
         this.crmInboundUri = URI.create(crmInboundUrl);

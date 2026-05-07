@@ -1,5 +1,6 @@
 package com.xactsolutions.email.handler;
 
+import com.xactsolutions.email.filter.AuthFilter;
 import com.xactsolutions.email.maddy.Maddy;
 import com.xactsolutions.email.util.SystemUtils;
 import com.xactsolutions.email.util.Utils;
@@ -14,12 +15,10 @@ public class DomainHandler extends BaseRequestHandler {
     private static final String DKIM_NAME_PREFIX = "default._domainkey.";
     private static final String DMARC_NAME_PREFIX = "_dmarc.";
 
-    private final String mxIp;
     private final Maddy maddy;
 
-    public DomainHandler(String endpoint, String mxIp, Maddy maddy) {
-        super(endpoint);
-        this.mxIp = mxIp;
+    public DomainHandler(String endpoint, AuthFilter authFilter, Maddy maddy) {
+        super(endpoint, authFilter);
         this.maddy = maddy;
     }
 
@@ -60,18 +59,19 @@ public class DomainHandler extends BaseRequestHandler {
     private boolean[] getDnsStatus(String expectedDomainKey) {
         List<String> mxRecords = SystemUtils.resolveDnsRecord(key, "MX");
         log.trace("Resolved MX records({}): {}", key, mxRecords);
-        boolean mxMatch = mxRecords.contains(mxIp);
+        boolean mxMatch = mxRecords.contains(maddy.getIp()) || mxRecords.contains(maddy.getHost());
 
         List<String> spfRecords = SystemUtils.resolveDnsSpfRecord(key);
         log.trace("Resolved SPF records({}): {}", key, spfRecords);
-        boolean spfMatch = spfRecords.contains(mxIp) || (spfRecords.contains("mx") && mxMatch);
+        boolean spfMatch = spfRecords.contains(maddy.getIp()) || (spfRecords.contains("mx") && mxMatch);
 
         List<String> dkimRecords = SystemUtils.resolveDnsRecord(DKIM_NAME_PREFIX+key, "TXT");
         log.trace("Resolved DKIM records({}): {}", key, dkimRecords);
         boolean dkimMatch = !dkimRecords.isEmpty() && dkimRecords.getFirst().equals(expectedDomainKey);
 
-        String expectedDmarc = "v=DMARC1;p=none;" + key;
+        String expectedDmarc = "v=DMARC1;p=none;";
         List<String> dmarcRecords = SystemUtils.resolveDnsRecord(DMARC_NAME_PREFIX+key, "TXT");
+        log.trace("Resolved DMARC records({}): {}", key, dmarcRecords);
         boolean dmarc = dmarcRecords.getFirst().replaceAll("\\s", "").equalsIgnoreCase(expectedDmarc);
 
         return new boolean[]{mxMatch, spfMatch, dkimMatch, dmarc};

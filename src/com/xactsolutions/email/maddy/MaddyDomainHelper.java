@@ -48,7 +48,10 @@ public class MaddyDomainHelper {
 
     public static String resolveDomainKey(String domain) {
         try {
-            return Files.readString(DKIM_DIR.resolve(domain + DKIM_DNS_SUFFIX));
+            Path path = DKIM_DIR.resolve(domain + DKIM_DNS_SUFFIX);
+            String data = Files.readString(path);
+            log.trace("Fetched DKIM from {}:\n{}", path, data);
+            return data;
         } catch (IOException e) {
             log.trace("Couldn't resolve DKIM key for domain ({})", domain, e);
             return "";
