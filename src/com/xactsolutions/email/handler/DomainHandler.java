@@ -26,7 +26,7 @@ public class DomainHandler extends BaseRequestHandler {
     protected @NonNull Response getOne() {
         String domainKey = maddy.resolveDomainKey(key);
         if (queryMap.get("dkimOnly") != null)
-            return new JsonResponse(200, "{\"domainkey\":\"%s\"}".formatted(domainKey));
+            return new JsonResponse(200, "{\"domainKey\": \"%s\"}".formatted(domainKey));
 
         boolean[] dnsStatus = getDnsStatus(domainKey);
         String responseStr = """
