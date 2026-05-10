@@ -14,8 +14,7 @@ public class Utils {
         jsonObject = jsonObject.trim();
         if (!jsonObject.startsWith("{") || !jsonObject.endsWith("}"))
             throw new RuntimeException("Given string is not a JSON Object!!");
-        jsonObject = jsonObject.substring(1);       // remove starting { of object
-        jsonObject = jsonObject.substring(0, jsonObject.length() - 1);      // remove closing } of object
+        jsonObject = jsonObject.substring(1, jsonObject.length() - 1);       // remove starting { and ending } of object
 
         String[] fieldAndValues = jsonObject.split(",\\s*\"");
         // remove initial " from field name
@@ -29,10 +28,10 @@ public class Utils {
                 int idx = str.indexOf(":");
                 if (idx == -1) throw new RuntimeException("Invalid object format!!");
                 String value = str.substring(idx + 1).trim();
-                if (value.startsWith("\"") && value.endsWith("\"")) {
-                    value = value.substring(1);
-                    value = value.substring(0, value.length() - 1);
-                }
+                if (value.startsWith("\"") && value.endsWith("\""))
+                    return value.substring(1, value.length() - 1);
+                else if (value.equals("null"))
+                    return null;
                 return value;
             }
         }
