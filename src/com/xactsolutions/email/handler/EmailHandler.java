@@ -41,10 +41,6 @@ public class EmailHandler extends BaseRequestHandler {
             return new JsonResponse(500, e.getMessage());
         }
 
-//        Thread.ofVirtual()
-//            .name("email-sender-", 0)
-//            .start(() -> {
-//            });
         return new JsonResponse(202, null);
     }
 

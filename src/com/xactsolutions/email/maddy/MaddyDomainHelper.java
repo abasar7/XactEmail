@@ -30,7 +30,6 @@ public class MaddyDomainHelper {
             throw e;
         }
 
-        MaddyServiceHelper.createAcc("crm@"+domain, password);
         return resolveDomainKey(domain);
     }
 
@@ -44,7 +43,6 @@ public class MaddyDomainHelper {
             throw e;
         }
 
-        MaddyServiceHelper.removeAcc("crm@"+domain);
         removeDomainKey(domain);
     }
 

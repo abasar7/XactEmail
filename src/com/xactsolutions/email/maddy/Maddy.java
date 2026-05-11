@@ -41,7 +41,9 @@ public class Maddy {
         if (!DOMAIN_REGEX.matcher(domain).matches()) throw new RuntimeException("Invalid domain name format!!");
         domain = domain.toLowerCase();
 
-        return MaddyDomainHelper.addDomain(domain, password);
+        String domainKey = MaddyDomainHelper.addDomain(domain, password);
+        MaddyServiceHelper.createAcc("crm@"+domain, password);
+        return domainKey;
     }
 
     public void removeDomain(String domain) {
@@ -49,6 +51,7 @@ public class Maddy {
         domain = domain.toLowerCase();
 
         MaddyDomainHelper.removeDomain(domain);
+        MaddyServiceHelper.removeAcc("crm@"+domain);
     }
 
     public String resolveDomainKey(String domain) {
@@ -59,12 +62,15 @@ public class Maddy {
     }
 
     public void sendEmail(@NonNull String from, @NonNull String to, @NonNull String subject, @NonNull String htmlContent, String unsubscribeUrl) {
-        from = from.toLowerCase();
         String domain = from.substring(from.lastIndexOf('@') + 1);
+        if (domain.endsWith(">")) domain = domain.substring(0, domain.length() - 1);
+        String finalDomain = domain.toLowerCase();
+
+        log.trace("Creating new session for domain {}", finalDomain);
         Session session = Session.getDefaultInstance(getSessionProperties(), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication("crm@"+domain, password);
+                return new PasswordAuthentication("crm@"+ finalDomain, password);
             }
         });
 
