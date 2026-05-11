@@ -124,11 +124,11 @@ public class Maddy {
         return messages;
     }
 
-    public void markMessagesAsSeen(List<Long> messageIds) {
+    public void markMessagesAsSeen(long userId, List<Long> messageIds) {
         if (messageIds == null || messageIds.isEmpty()) return;
 
         var messageIdsStr = messageIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-        var markSeenSql = "UPDATE msgs SET seen = 1 WHERE msgId IN ("+ messageIdsStr +");";
+        var markSeenSql = "UPDATE msgs SET seen = 1 WHERE mboxId = "+userId+" AND msgId IN ("+ messageIdsStr +");";
         int updateStatus;
         try {
             var conn = ConnectionManager.getConnection();

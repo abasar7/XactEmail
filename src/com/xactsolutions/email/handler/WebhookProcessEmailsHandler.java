@@ -10,14 +10,19 @@ import jakarta.mail.internet.InternetAddress;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static com.xactsolutions.email.util.Utils.isEmpty;
 
 @Slf4j
 public class WebhookProcessEmailsHandler extends BaseRequestHandler {
@@ -63,10 +68,12 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
                     List<MessageMeta> messages = maddy.listUnseenMessages();
                     log.debug("Total {} messages has been fetched as unseen", messages.size());
 
-                    List<Long> regularIds = new ArrayList<>();
-                    List<Long> reportIds = new ArrayList<>();
+                    Map<Long, List<Long>> regularIdMap = new HashMap<>();
+                    Map<Long, List<Long>> reportIdMap = new HashMap<>();
+                    int count = 0;
                     for (var meta : messages) {
                         long id = meta.getId();
+                        long userId = meta.getUserId();
                         String bodyKey = meta.getBodyKey();
                         try {
                             EmailParser parser = new EmailParser(messageDir + bodyKey);
@@ -74,25 +81,23 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
                             if (report && parser.getReportSubType().equals("delivery-status")) {
                                 EmailParser newParser = parser.extractOriginalReportedEmailHeader();
                                 String crmPayload = buildCRMPayload(newParser, true);
-                                sendAsyncRequest(crmReportUri, crmPayload);
-                                reportIds.add(id);
+                                forwardEmailData(crmReportUri, crmPayload);
+                                reportIdMap.computeIfAbsent(userId, _ -> new ArrayList<>()).add(id);
                             } else if (!report) {
                                 String crmPayload = buildCRMPayload(parser, false);
-                                sendAsyncRequest(crmInboundUri, crmPayload);
-                                regularIds.add(id);
+                                forwardEmailData(crmInboundUri, crmPayload);
+                                regularIdMap.computeIfAbsent(userId, _ -> new ArrayList<>()).add(id);
                             }
+                            count++;
                         } catch (Exception e) {
-                            log.error("Failed to forward message {}_{} - {} to {}", meta.getUserId(), id, bodyKey, crmInboundUri, e);
+                            log.error("Failed to forward message {}_{} - {} to {}", userId, id, bodyKey, crmInboundUri, e);
                         }
                     }
 
-                    List<Long> allForwardedIds = new ArrayList<>(regularIds);
-                    allForwardedIds.addAll(reportIds);
-
-                    log.debug("Total {}/{} messages has been forwarded (will be mark as soon). " +
-                            "Where {} was regular inbound email(s) and {} was report.",
-                        allForwardedIds.size(), messages.size(), reportIds.size(), reportIds.size());
-                    maddy.markMessagesAsSeen(allForwardedIds);
+                    log.debug("Total {}/{} messages has been forwarded (will be mark as soon).",
+                        count, messages.size());
+                    regularIdMap.forEach(maddy::markMessagesAsSeen);
+                    reportIdMap.forEach(maddy::markMessagesAsSeen);
                 } catch (Exception e) {
                     log.error("Error in fetching/updating IMAP messages from DB", e);
                 } finally {
@@ -125,26 +130,34 @@ public class WebhookProcessEmailsHandler extends BaseRequestHandler {
             txtContent = parser.getTextContent();
             try { htmlContent = parser.getHtmlContent(); }
             catch (HtmlContentNotFoundException e) {/**/}
+
+            if (!isEmpty(txtContent)) txtContent = txtContent.replace("\r", "\\r").replace("\n", "\\n").replace("\"", "\\\"");
+            if (!isEmpty(htmlContent)) htmlContent = htmlContent.replace("\r", "\\r").replace("\n", "\\n").replace("\"", "\\\"");
         }
 
         return """
-            "report": "%b",
-            "from_email": "%s",
-            "from_name": "%s",
-            "to_list": "%s",
-            "subject": "%s",
-            "date_received": "%s"
-            "body_text": "%s",
-            "body_html": "%s",
+            {
+                "report": %b,
+                "from_email": "%s",
+                "from_name": "%s",
+                "to_list": "%s",
+                "subject": "%s",
+                "date_received": "%s",
+                "body_text": "%s",
+                "body_html": "%s"
+            }
             """.formatted(report, fromEmail, fromName, recipients, parser.getSubject(), parser.getSentDate(), txtContent, htmlContent);
     }
 
 
-    private void sendAsyncRequest(URI uri, String jsonPayload) {
+    private void forwardEmailData(URI uri, String jsonPayload) throws IOException, InterruptedException {
+        log.debug("Forwarding email data to {}", uri);
+        log.trace("Email forward request {} with payload\n{}", uri, jsonPayload);
+
         HttpRequest request = HttpRequest.newBuilder()
             .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
             .uri(uri).header("Content-Type", "application/json").build();
-        httpClient.sendAsync(request, HttpResponse.BodyHandlers.discarding());
+        httpClient.send(request, HttpResponse.BodyHandlers.discarding());
     }
 
 }
