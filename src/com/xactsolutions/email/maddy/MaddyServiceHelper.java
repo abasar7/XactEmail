@@ -34,4 +34,16 @@ public class MaddyServiceHelper {
             throw new RuntimeException("Unknown exit code when executing Maddy restart command: " + result[0]);
     }
 
+    static void createAcc(String username, String password) {
+        String[] result = SystemUtils.executeCommand(new String[]{"maddy", "creds", "create", username}, password);
+        if (!result[0].equals("0"))
+            throw new RuntimeException("Unknown exit code when executing Maddy credential create command: " + result[0]);
+    }
+
+    static void removeAcc(String username) {
+        String[] result = SystemUtils.executeCommand(new String[]{"maddy", "creds", "remove", username}, "y");
+        if (!result[0].equals("0"))
+            throw new RuntimeException("Unknown exit code when executing Maddy credential create command: " + result[0]);
+    }
+
 }

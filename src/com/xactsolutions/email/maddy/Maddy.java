@@ -27,15 +27,11 @@ public class Maddy {
     private final String host;
     @Getter
     private final String ip;
-    private final String username;
-    private final String userDomain;
     private final String password;
 
-    public Maddy(String ip, String host, String username, String password, String imapDbUrl) {
+    public Maddy(String ip, String host, String password, String imapDbUrl) {
         this.ip = ip;
         this.host = host;
-        this.username = username;
-        this.userDomain = username.split("@")[1];
         this.password = password;
         ConnectionManager.setDbUrl(imapDbUrl);
     }
@@ -45,7 +41,7 @@ public class Maddy {
         if (!DOMAIN_REGEX.matcher(domain).matches()) throw new RuntimeException("Invalid domain name format!!");
         domain = domain.toLowerCase();
 
-        return MaddyDomainHelper.addDomain(domain);
+        return MaddyDomainHelper.addDomain(domain, password);
     }
 
     public void removeDomain(String domain) {
@@ -63,10 +59,12 @@ public class Maddy {
     }
 
     public void sendEmail(@NonNull String from, @NonNull String to, @NonNull String subject, @NonNull String htmlContent, String unsubscribeUrl) {
+        from = from.toLowerCase();
+        String domain = from.substring(from.lastIndexOf('@') + 1);
         Session session = Session.getDefaultInstance(getSessionProperties(), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(username, password);
+                return new PasswordAuthentication("crm@"+domain, password);
             }
         });
 
@@ -77,14 +75,14 @@ public class Maddy {
             if (!isEmpty(unsubscribeUrl)) {
                 String unsubscribeText = "<div style=\"text-align:center; padding: 4px;\">If you do not wish to receive any further communications, please <a href=\""+unsubscribeUrl+"\">unsubscribe here</a>.</div>\n";
                 message.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
-                message.setHeader("List-Unsubscribe", "<"+unsubscribeUrl+">,<mailto:unsubscribe@"+ userDomain +"?subject=unsubscribe>");
+                message.setHeader("List-Unsubscribe", "<"+unsubscribeUrl+">,<mailto:unsubscribe@"+ domain +"?subject=unsubscribe>");
 
                 StringBuilder sb = new StringBuilder(htmlContent);
                 int bodyTagIndex = sb.indexOf(BODY_TAG);
                 if (bodyTagIndex == -1) bodyTagIndex = sb.length();
                 htmlContent = sb.insert(bodyTagIndex, unsubscribeText).toString();
             } else {
-                message.setHeader("List-Unsubscribe", "<mailto:unsubscribe@"+ userDomain +"?subject=unsubscribe>");
+                message.setHeader("List-Unsubscribe", "<mailto:unsubscribe@"+ domain +"?subject=unsubscribe>");
             }
             message.setSubject(subject);
             message.setText(htmlContent, "utf-8", "html");

@@ -29,7 +29,6 @@ public class XactEmail {
         Properties properties = loadProperties();
         Maddy maddy = new Maddy(properties.getProperty("maddy.ip"),
             properties.getProperty("maddy.host"),
-            properties.getProperty("maddy.username"),
             properties.getProperty("maddy.password"),
             properties.getProperty("maddy.imap.dburl"));
 

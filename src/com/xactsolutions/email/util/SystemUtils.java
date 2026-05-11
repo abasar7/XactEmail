@@ -3,9 +3,7 @@ package com.xactsolutions.email.util;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +22,9 @@ public class SystemUtils {
         put("TXT", "%s descriptive text ");    // abc.co descriptive text "v=spf1 mx ~all"
     }};
 
+    public static @NonNull String[] executeCommand(String[] command) {
+        return SystemUtils.executeCommand(command, null);
+    }
     /**
      * @param command command to execute with arguments
      * @return string from standard system output/error after command being executed
@@ -31,11 +32,25 @@ public class SystemUtils {
      * ["/bin/systemctl", "status", "nginx"] <br>
      * and this will return the output string
      * */
-    public static @NonNull String[] executeCommand(String[] command) {
+    public static @NonNull String[] executeCommand(@NonNull String[] command, String input) {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             processBuilder.redirectErrorStream(true);   // error data will be merged to regular input stream (stdout)
             Process process = processBuilder.start();
+
+            if (input != null) {
+                Thread.ofVirtual().name("maddy-interactive-", 0)
+                    .start(() -> {
+                        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()))) {
+                            Thread.sleep(1000);
+                            writer.write(input);
+                            writer.write("\n");
+                            writer.flush();
+                        } catch (InterruptedException | IOException e) {
+                            log.error(e.getMessage(), e);
+                        }
+                    });
+            }
 
             StringBuilder output = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {

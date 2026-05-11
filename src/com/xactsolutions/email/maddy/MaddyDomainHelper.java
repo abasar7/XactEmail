@@ -20,7 +20,7 @@ public class MaddyDomainHelper {
     private static final String DOMAIN_LINE = "$(local_domains) = $(primary_domain) ";
 
 
-    public static synchronized String addDomain(String domain) {
+    public static synchronized String addDomain(String domain, String password) {
         updateDomainConfig(domain, false);
 
         try {
@@ -30,6 +30,7 @@ public class MaddyDomainHelper {
             throw e;
         }
 
+        MaddyServiceHelper.createAcc("crm@"+domain, password);
         return resolveDomainKey(domain);
     }
 
@@ -43,6 +44,7 @@ public class MaddyDomainHelper {
             throw e;
         }
 
+        MaddyServiceHelper.removeAcc("crm@"+domain);
         removeDomainKey(domain);
     }
 

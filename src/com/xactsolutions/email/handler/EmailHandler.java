@@ -23,8 +23,9 @@ public class EmailHandler extends BaseRequestHandler {
         String from = Utils.getJsonFieldValue(payloadStr, "from");
         String to = Utils.getJsonFieldValue(payloadStr, "to");
         String subject = Utils.getJsonFieldValue(payloadStr, "subject");
-        String content = Utils.getJsonFieldValue(payloadStr, "content");
         String unsubscribeUrl = Utils.getJsonFieldValue(payloadStr, "unsubscribeUrl");
+        String content = Utils.getJsonFieldValue(payloadStr, "content");
+        log.trace("Extracted payload parts\n from: {}, to: {}, sub: {}, url: {}, content:\n{}", from, to, subject, unsubscribeUrl, content);
         if (isEmpty(from) || isEmpty(to) || isEmpty(subject) || isEmpty(content)) {
             return new JsonResponse(400, "{\"message\": \"Payload has empty value in from/to/subject/content\"}");
         }
