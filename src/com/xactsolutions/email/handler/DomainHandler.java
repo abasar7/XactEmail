@@ -69,7 +69,8 @@ public class DomainHandler extends BaseRequestHandler {
 
         List<String> dkimRecords = SystemUtils.resolveDnsRecord(DKIM_NAME_PREFIX+key, "TXT");
         log.trace("Resolved DKIM records({}): {}", key, dkimRecords);
-        boolean dkimMatch = !dkimRecords.isEmpty() && dkimRecords.getFirst().replace("\"", "").equals(expectedDomainKey);   // large TXT records like DKIM key could be stored as 256 char split(") value
+        boolean dkimMatch = !dkimRecords.isEmpty() && dkimRecords.getFirst()
+            .replaceAll("[\"\\s]*", "").equals(expectedDomainKey.replaceAll("\\s", ""));   // large TXT records like DKIM key could be stored as 256 char split(") value
 
         String expectedDmarc = "v=DMARC1;p=none;";
         List<String> dmarcRecords = SystemUtils.resolveDnsRecord(DMARC_NAME_PREFIX+key, "TXT");
