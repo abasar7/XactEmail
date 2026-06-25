@@ -29,7 +29,7 @@ public class Utils {
                 if (idx == -1) throw new RuntimeException("Invalid object format!!");
                 String value = str.substring(idx + 1).trim();
                 if (value.startsWith("\"") && value.endsWith("\""))
-                    return value.substring(1, value.length() - 1);
+                    return value.substring(1, value.length() - 1).replaceAll("\\\\\"", "\"");
                 else if (value.equals("null"))
                     return null;
                 return value;

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -91,7 +92,7 @@ public class Maddy {
                 message.setHeader("List-Unsubscribe", "<mailto:unsubscribe@"+ domain +"?subject=unsubscribe>");
             }
             message.setSubject(subject);
-            message.setText(htmlContent, "utf-8", "html");
+            message.setText(htmlContent, StandardCharsets.UTF_8.name(), "html");
             Transport.send(message);
             log.debug("Email send successfully to {} from {}", to, from);
         } catch (MessagingException e) {
