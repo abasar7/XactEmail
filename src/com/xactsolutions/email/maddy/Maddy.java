@@ -62,7 +62,7 @@ public class Maddy {
         return MaddyDomainHelper.resolveDomainKey(domain);
     }
 
-    public void sendEmail(@NonNull String from, @NonNull String to, @NonNull String subject, @NonNull String htmlContent, String unsubscribeUrl) {
+    public void sendEmail(@NonNull String from, @NonNull String to, @NonNull String subject, @NonNull String htmlContent, String messageId, String referenceId, String inReplyToId, String unsubscribeUrl) {
         String domain = from.substring(from.lastIndexOf('@') + 1);
         if (domain.endsWith(">")) domain = domain.substring(0, domain.length() - 1);
         String finalDomain = domain.toLowerCase();
@@ -77,8 +77,6 @@ public class Maddy {
 
         try {
             MimeMessage message = new MimeMessage(session);
-            message.setFrom(from);
-            message.setRecipients(Message.RecipientType.TO, to);
             if (!isEmpty(unsubscribeUrl)) {
                 String unsubscribeText = "<div style=\"text-align:center; padding: 4px;\">If you do not wish to receive any further communications, please <a href=\""+unsubscribeUrl+"\">unsubscribe here</a>.</div>\n";
                 message.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
@@ -88,9 +86,14 @@ public class Maddy {
                 int bodyTagIndex = sb.indexOf(BODY_TAG);
                 if (bodyTagIndex == -1) bodyTagIndex = sb.length();
                 htmlContent = sb.insert(bodyTagIndex, unsubscribeText).toString();
-            } else {
+            } else
                 message.setHeader("List-Unsubscribe", "<mailto:unsubscribe@"+ domain +"?subject=unsubscribe>");
-            }
+            if (!isEmpty(messageId)) message.setHeader("Message-ID", messageId);
+            if (!isEmpty(referenceId)) message.setHeader("References", referenceId);
+            if (!isEmpty(inReplyToId)) message.setHeader("In-Reply-To", inReplyToId);
+
+            message.setFrom(from);
+            message.setRecipients(Message.RecipientType.TO, to);
             message.setSubject(subject);
             message.setText(htmlContent, StandardCharsets.UTF_8.name(), "html");
             Transport.send(message);
