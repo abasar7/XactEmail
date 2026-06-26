@@ -47,7 +47,7 @@ public class EmailParser {
 
     public EmailParser(ByteArrayInputStream is) {
         try {
-            this.message = new MimeMessage(Session.getDefaultInstance(new Properties()), is);
+            this.message = new MimeMessage(Session.getInstance(new Properties()), is);
         } catch (MessagingException e) {
             throw new RuntimeException("Failed to parse", e);
         }

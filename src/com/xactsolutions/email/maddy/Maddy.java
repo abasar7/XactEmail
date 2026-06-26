@@ -68,7 +68,7 @@ public class Maddy {
         String finalDomain = domain.toLowerCase();
 
         log.trace("Creating new session for domain {}", finalDomain);
-        Session session = Session.getDefaultInstance(getSessionProperties(), new Authenticator() {
+        Session session = Session.getInstance(getSessionProperties(), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
                 return new PasswordAuthentication("crm@"+ finalDomain, password);
