@@ -83,7 +83,7 @@ public class Maddy {
                 message.setHeader("List-Unsubscribe", "<"+unsubscribeUrl+">,<mailto:unsubscribe@"+ domain +"?subject=unsubscribe>");
 
                 StringBuilder sb = new StringBuilder(htmlContent);
-                int bodyTagIndex = sb.indexOf(BODY_TAG);
+                int bodyTagIndex = sb.lastIndexOf(BODY_TAG);
                 if (bodyTagIndex == -1) bodyTagIndex = sb.length();
                 htmlContent = sb.insert(bodyTagIndex, unsubscribeText).toString();
             } else
