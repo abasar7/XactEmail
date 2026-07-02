@@ -79,8 +79,8 @@ public class Maddy {
             MimeMessage message = new MimeMessage(session);
             if (!isEmpty(unsubscribeUrl)) {
                 String unsubscribeText = "<div style=\"text-align:center; padding: 4px;\">If you do not wish to receive any further communications, please <a href=\""+unsubscribeUrl+"\">unsubscribe here</a>.</div>\n";
+                message.setHeader("List-Unsubscribe", unsubscribeUrl);
                 message.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
-                message.setHeader("List-Unsubscribe", "<"+unsubscribeUrl+">,<mailto:unsubscribe@"+ domain +"?subject=unsubscribe>");
 
                 StringBuilder sb = new StringBuilder(htmlContent);
                 int bodyTagIndex = sb.lastIndexOf(BODY_TAG);
