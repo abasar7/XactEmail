@@ -24,7 +24,7 @@ public class EmailHandler extends BaseRequestHandler {
         String to = Utils.getJsonFieldValue(payloadStr, "to");
         String subject = Utils.getJsonFieldValue(payloadStr, "subject");
         String messageId = Utils.getJsonFieldValue(payloadStr, "messageId");
-        String referenceId = Utils.getJsonFieldValue(payloadStr, "referenceId");
+        String referenceIds = Utils.getJsonFieldValue(payloadStr, "referenceIds");
         String inReplyToId = Utils.getJsonFieldValue(payloadStr, "inReplyToId");
         String unsubscribeUrl = Utils.getJsonFieldValue(payloadStr, "unsubscribeUrl");
         String content = Utils.getJsonFieldValue(payloadStr, "content");
@@ -37,7 +37,7 @@ public class EmailHandler extends BaseRequestHandler {
         }
 
         try {
-            maddy.sendEmail(from, to, subject, content, messageId, referenceId, inReplyToId, unsubscribeUrl);
+            maddy.sendEmail(from, to, subject, content, messageId, referenceIds, inReplyToId, unsubscribeUrl);
             log.debug("Email successfully sent to {} from {}", from, to);
         } catch (Exception e) {
             log.error("Error in sending email via maddy", e);

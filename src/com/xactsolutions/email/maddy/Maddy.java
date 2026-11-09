@@ -62,7 +62,7 @@ public class Maddy {
         return MaddyDomainHelper.resolveDomainKey(domain);
     }
 
-    public void sendEmail(@NonNull String from, @NonNull String to, @NonNull String subject, @NonNull String htmlContent, String messageId, String referenceId, String inReplyToId, String unsubscribeUrl) {
+    public void sendEmail(@NonNull String from, @NonNull String to, @NonNull String subject, @NonNull String htmlContent, String messageId, String referenceIds, String inReplyToId, String unsubscribeUrl) {
         String domain = from.substring(from.lastIndexOf('@') + 1);
         if (domain.endsWith(">")) domain = domain.substring(0, domain.length() - 1);
         String finalDomain = domain.toLowerCase();
@@ -89,8 +89,11 @@ public class Maddy {
             } else
                 message.setHeader("List-Unsubscribe", "<mailto:unsubscribe@"+ domain +"?subject=unsubscribe>");
             if (!isEmpty(messageId)) message.setHeader("Message-ID", messageId);
-            if (!isEmpty(referenceId)) message.setHeader("References", referenceId);
-            if (!isEmpty(inReplyToId)) message.setHeader("In-Reply-To", inReplyToId);
+            if (!isEmpty(referenceIds)) message.setHeader("References", referenceIds);
+            if (!isEmpty(inReplyToId)) {
+                if (!subject.startsWith("Re: ")) subject = "Re: "+subject;
+                message.setHeader("In-Reply-To", inReplyToId);
+            }
 
             message.setFrom(from);
             message.setRecipients(Message.RecipientType.TO, to);
